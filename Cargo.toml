@@ -1,0 +1,14 @@
+[package]
+name = "skiplist"
+version = "0.1.0"
+authors = ["sushrutshivaswamy"]
+edition = "2018"
+description = """
+Fast, performant in-memory SkipList implemented in Rust.
+"""
+license = "MIT"
+keywords = ["list", "sorted", "skiplist"]
+categories = ["algorithms", "data-structures", "caching"]
+
+[dependencies]
+rand = "0.5.5"
