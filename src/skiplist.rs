@@ -6,6 +6,7 @@ use std::fmt::Display;
 use std::option::Option;
 use std::rc::{Rc, Weak};
 
+
 type Link<K, V> = Option<Rc<RefCell<Node<K, V>>>>;
 type WeakLink<K, V> = Option<Weak<RefCell<Node<K, V>>>>;
 
@@ -174,6 +175,23 @@ where
         };
     }
 
+    /// Insert after the supplied node.
+    /// This method just inserts after the supplied node.
+    /// It is up to the caller to ensure that the sorted order is maintained.
+    fn insert_after(
+        &mut self,
+        key: K,
+        value: V,
+        after: Rc<RefCell<Node<K, V>>>,
+    ) -> Rc<RefCell<Node<K, V>>> {
+        let node = Rc::new(RefCell::new(Node::new(key, value)));
+        after.borrow_mut().left = Some(Rc::downgrade(&node));
+        node.borrow_mut().right = after.borrow_mut().right.take();
+        node.borrow_mut().left = Some(Rc::downgrade(&after));
+        after.borrow_mut().right = Some(Rc::clone(&node));
+        Rc::clone(&node)
+    }
+
     fn delete(&mut self, key: &K) {
         let maybe_node = self.iter().find(|node_ref| {
             return match node_ref.borrow().cmp(key) {
@@ -308,6 +326,25 @@ where
         values
     }
 
+    /// Find the points of insertion in each level to complete an insert to the list.
+    fn bisect(&self, key: K, output: &mut Vec<Rc<RefCell<Node<K, V>>>>) {
+        let size = self.levels.len();
+        if size == 0 {
+            return;
+        }
+        let mut i = 0;
+        let mut prev = self.levels[0].head.as_ref().map(Rc::clone).unwrap();
+        while i < size {
+            let idx = size - i - 1;
+            let node = self.levels[idx].bisect_after(&prev, &key);
+            let current: Rc<RefCell<Node<K, V>>> = node.as_ref().map(Rc::clone).unwrap();
+            prev = current.borrow().down.as_ref().map(Rc::clone).unwrap();
+            output.push(node.unwrap());
+            i += 1
+        }
+        output.reverse();
+    }
+
     fn iter(&self) -> Iter<K, V> {
         Iter {
             next: self.levels[0].head.as_ref().map(Rc::clone),
@@ -380,6 +417,35 @@ mod tests {
         let node = level.insert(0, "val_0".to_owned());
         assert_eq!(node.borrow().key, 0);
         assert_eq!(level.size, 4);
+    }
+
+    #[test]
+    fn test_level_insert_after() {
+        let mut level = Level::new();
+        level.insert(3, 3);
+        level.insert(0, 0);
+        let after = level.insert(1, 1);
+        let new_node = level.insert_after(2, 2, Rc::clone(&after));
+        let prev_node = new_node.borrow().left.as_ref().and_then(Weak::upgrade);
+        let next_node = new_node.borrow().right.as_ref().map(Rc::clone);
+        assert_eq!(prev_node.is_some(), true);
+        assert_eq!(prev_node.as_ref().unwrap().borrow().key, 1);
+        assert_eq!(next_node.is_some(), true);
+        assert_eq!(next_node.as_ref().unwrap().borrow().key, 3);
+    }
+
+    #[test]
+    fn test_level_insert_after_tail() {
+        let mut level = Level::new();
+        level.insert(3, 3);
+        level.insert(0, 0);
+        let tail = level.insert(5, 5);
+        let new_node = level.insert_after(6, 6, Rc::clone(&tail));
+        let prev_node = new_node.borrow().left.as_ref().and_then(Weak::upgrade);
+        let next_node = new_node.borrow().right.as_ref().map(Rc::clone);
+        assert_eq!(prev_node.is_some(), true);
+        assert_eq!(prev_node.as_ref().unwrap().borrow().key, 5);
+        assert_eq!(next_node.is_none(), true);
     }
 
     #[test]
