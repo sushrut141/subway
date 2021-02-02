@@ -82,17 +82,26 @@ where
         self.iter().last()
     }
 
+    /// Find the insertion pint for the supplied after the given node.
+    /// For example in the below list the bisection point is 5
+    /// h -> 1 -> 2 -> 5 -> 7
+    ///      |         |
+    ///      node      insertion point for key 6
     fn bisect_after(&self, node: &Rc<RefCell<Node<K, V>>>, target: &K) -> Link<K, V> {
+        if node.borrow().key.cmp(target) == Ordering::Greater {
+            return None;
+        }
         let mut maybe_current = Some(Rc::clone(node));
+        let mut prev: Link<K, V> = node.borrow().left.as_ref().and_then(Weak::upgrade);
         let mut output = None;
         while maybe_current.is_some() {
             let current = maybe_current.take().unwrap();
+            prev = Some(Rc::clone(&current));
             match current.borrow().cmp(target) {
                 Ordering::Less => {
                     maybe_current = current.borrow().right.as_ref().map(Rc::clone);
                 }
                 Ordering::Equal => {
-                    output = Some(Rc::clone(&current));
                     maybe_current = current.borrow().right.as_ref().map(Rc::clone);
                 }
                 Ordering::Greater => {
@@ -103,7 +112,11 @@ where
                 break;
             }
         }
-        return output;
+        // found insertion point
+        if output.is_some() {
+            return output;
+        }
+        return prev;
     }
 
     fn insert(&mut self, key: K, value: V) -> Rc<RefCell<Node<K, V>>> {
@@ -339,7 +352,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::iter::Skip;
 
     #[test]
     fn test_node() {
@@ -380,8 +392,9 @@ mod tests {
         let maybe_found = level.bisect_after(&node, &4);
         assert_eq!(maybe_found.is_some(), true);
         assert_eq!(maybe_found.unwrap().borrow().key, 4);
-        let maybe_not_found = level.bisect_after(&node, &7);
-        assert_eq!(maybe_not_found.is_none(), true);
+        let maybe_last = level.bisect_after(&node, &7);
+        assert_eq!(maybe_last.is_some(), true);
+        assert_eq!(maybe_last.unwrap().borrow().key, 5);
     }
 
     #[test]
@@ -403,7 +416,8 @@ mod tests {
         level.insert(3, 3);
         let node = level.insert(1, 1);
         let maybe_found = level.bisect_after(&node, &5);
-        assert_eq!(maybe_found.is_none(), true);
+        assert_eq!(maybe_found.is_some(), true);
+        assert_eq!(maybe_found.as_ref().unwrap().borrow().right.is_none(), true);
     }
 
     #[test]
@@ -485,8 +499,23 @@ mod tests {
         assert_eq!(last_node.borrow().right.is_none(), true);
         let maybe_found = level.bisect_after(&last_node, &5);
         assert_eq!(maybe_found.is_some(), true);
-        assert_eq!(maybe_found.as_ref().unwrap().borrow().key,
-                   last_node.borrow().key);
+        assert_eq!(
+            maybe_found.as_ref().unwrap().borrow().key,
+            last_node.borrow().key
+        );
+    }
+
+    #[test]
+    fn test_bisect_after_when_insertion_point_is_at_end() {
+        let mut level: Level<i32, i32> = Level::new();
+        level.insert(1, 1);
+        level.insert(0, 0);
+        level.insert(3, 3);
+        level.insert(2, 2);
+        let node = level.insert(2, 2);
+        let maybe_insert = level.bisect_after(&node, &5);
+        assert_eq!(maybe_insert.is_some(), true);
+        assert_eq!(maybe_insert.as_ref().unwrap().borrow().key, 3);
     }
 
     #[test]
@@ -550,8 +579,7 @@ mod tests {
         list.insert(5, 5);
         list.insert(8, 8);
         list.insert(6, 6);
-        let mut values: Vec<i32> =
-            list.collect().iter().map(|tup| tup.1).collect();
+        let mut values: Vec<i32> = list.collect().iter().map(|tup| tup.1).collect();
         assert_eq!(values, vec![1, 2, 3, 4, 5, 6, 7, 8]);
     }
 
@@ -566,7 +594,6 @@ mod tests {
         list.insert(5, 5);
         list.insert(8, 8);
         list.insert(6, 6);
-        list.print();
         let maybe_1 = list.get(&1);
         assert_eq!(maybe_1.is_some(), true);
         assert_eq!(maybe_1.unwrap(), 1);
@@ -590,8 +617,7 @@ mod tests {
         list.delete(&1);
         list.delete(&4);
         assert_eq!(list.size, 6);
-        let mut values: Vec<i32> =
-            list.collect().iter().map(|tup| tup.1).collect();
+        let mut values: Vec<i32> = list.collect().iter().map(|tup| tup.1).collect();
         assert_eq!(values, vec![2, 3, 5, 6, 7, 8]);
     }
 }
