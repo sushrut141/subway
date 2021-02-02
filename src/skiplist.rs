@@ -316,8 +316,9 @@ where
         self.size = self.levels[0].size;
     }
 
+    /// Collect the entries sorted by key into the supplied collection.
     pub fn collect(&self) -> Vec<(K, V)> {
-        let mut values = vec![];
+        let mut values = Vec::new();
         self.iter().for_each(|node_ref| {
             let key = node_ref.borrow().key.clone();
             let value = node_ref.borrow().value.clone();

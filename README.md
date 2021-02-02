@@ -43,3 +43,14 @@ Deletes an item from the linked list if present using the supplied key.
 ```rust
 list.delete(&key_to_delete);
 ```
+
+### `collect`
+
+Collects the list of items in the skip list sorted by key into a list.
+
+```rust
+list.insert(2, 2);
+list.insert(2, 2);
+list.insert(5, 5);
+let values = list.collect(); // (1, 1), (2, 2), (5, 5)
+```
