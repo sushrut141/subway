@@ -88,7 +88,11 @@ where
         while maybe_current.is_some() {
             let current = maybe_current.take().unwrap();
             match current.borrow().cmp(target) {
-                Ordering::Equal | Ordering::Less => {
+                Ordering::Less => {
+                    maybe_current = current.borrow().right.as_ref().map(Rc::clone);
+                }
+                Ordering::Equal => {
+                    output = Some(Rc::clone(&current));
                     maybe_current = current.borrow().right.as_ref().map(Rc::clone);
                 }
                 Ordering::Greater => {
@@ -335,6 +339,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::iter::Skip;
 
     #[test]
     fn test_node() {
@@ -463,9 +468,25 @@ mod tests {
         let maybe_marker = level.bisect(&4);
         assert_eq!(maybe_marker.is_some(), true);
         assert_eq!(maybe_marker.as_ref().unwrap().borrow().key, 3);
-        let maybe_end = level.bisect(&6);
+        let maybe_end = level.bisect(&5);
         assert_eq!(maybe_end.is_some(), true);
         assert_eq!(maybe_end.as_ref().unwrap().borrow().right.is_none(), true);
+    }
+
+    #[test]
+    fn test_bisect_after_with_last_node() {
+        let mut level: Level<i32, i32> = Level::new();
+        level.insert(1, 1);
+        level.insert(0, 0);
+        level.insert(3, 3);
+        level.insert(2, 2);
+        level.insert(2, 2);
+        let last_node = level.insert(5, 5);
+        assert_eq!(last_node.borrow().right.is_none(), true);
+        let maybe_found = level.bisect_after(&last_node, &5);
+        assert_eq!(maybe_found.is_some(), true);
+        assert_eq!(maybe_found.as_ref().unwrap().borrow().key,
+                   last_node.borrow().key);
     }
 
     #[test]
@@ -545,6 +566,7 @@ mod tests {
         list.insert(5, 5);
         list.insert(8, 8);
         list.insert(6, 6);
+        list.print();
         let maybe_1 = list.get(&1);
         assert_eq!(maybe_1.is_some(), true);
         assert_eq!(maybe_1.unwrap(), 1);
