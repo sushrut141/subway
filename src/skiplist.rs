@@ -6,7 +6,6 @@ use std::fmt::Display;
 use std::option::Option;
 use std::rc::{Rc, Weak};
 
-
 type Link<K, V> = Option<Rc<RefCell<Node<K, V>>>>;
 type WeakLink<K, V> = Option<Weak<RefCell<Node<K, V>>>>;
 
@@ -185,11 +184,16 @@ where
         after: Rc<RefCell<Node<K, V>>>,
     ) -> Rc<RefCell<Node<K, V>>> {
         let node = Rc::new(RefCell::new(Node::new(key, value)));
-        after.borrow_mut().left = Some(Rc::downgrade(&node));
-        node.borrow_mut().right = after.borrow_mut().right.take();
+        let maybe_next_node = after.borrow_mut().right.take();
         node.borrow_mut().left = Some(Rc::downgrade(&after));
-        after.borrow_mut().right = Some(Rc::clone(&node));
-        Rc::clone(&node)
+        if maybe_next_node.is_some() {
+            let next_node = maybe_next_node.unwrap();
+            next_node.borrow_mut().left = Some(Rc::downgrade(&node));
+            node.borrow_mut().right = Some(next_node);
+        }
+        after.borrow_mut().right = Some(node);
+        self.size += 1;
+        Rc::clone(after.borrow().right.as_ref().unwrap())
     }
 
     fn delete(&mut self, key: &K) {
@@ -244,6 +248,12 @@ pub struct SkipList<K, V> {
     levels: Vec<Level<K, V>>,
 }
 
+enum Insertion<K, V> {
+    Before,
+    // represents insertion point after supplied node
+    After(Rc<RefCell<Node<K, V>>>),
+}
+
 impl<K, V> SkipList<K, V>
 where
     K: Ord + Clone + Display,
@@ -255,36 +265,62 @@ where
     }
 
     pub fn insert(&mut self, key: K, value: V) {
-        let mut prev = self.levels[0].insert(key.clone(), value.clone());
-        let mut new_head = self.levels[0].head.as_ref().map(Rc::clone).unwrap();
-        if new_head.borrow().key.cmp(&key) == Ordering::Equal {
-            // newly added node is head so update all levels with new head and return
-            let mut counter = 1;
-            while counter < self.levels.len() {
-                let current = self.levels[counter].insert(key.clone(), value.clone());
-                current.borrow_mut().down = Some(Rc::clone(&new_head));
-                new_head.borrow_mut().up = Some(Rc::downgrade(&current));
-                new_head = Rc::clone(&current);
-                counter += 1;
+        if self.levels.len() > 0 {
+            let mut insertion_path = Vec::new();
+            self.bisect(&key, &mut insertion_path);
+            let mut is_head = false;
+            match insertion_path.get(0).unwrap() {
+                Insertion::Before => {
+                    is_head = true;
+                }
+                _ => (),
+            }
+            let mut prev_level_node = self.insert_at_position(0, &key, &value, &insertion_path[0]);
+            let mut i = 1;
+            while i < self.levels.len() {
+                let current_level_node =
+                    self.insert_at_position(i, &key, &value, &insertion_path[i]);
+                prev_level_node.borrow_mut().up = Some(Rc::downgrade(&current_level_node));
+                current_level_node.borrow_mut().down = Some(Rc::clone(&prev_level_node));
+                prev_level_node = Rc::clone(&current_level_node);
+                i += 1;
+            }
+            // create more levels probabilistically if more than one node present
+            // and newly added node is not head
+            // we expect more than one node to be present to avoid
+            // let head_ref = self.levels[0].head.as_ref().unwrap();
+            if self.levels[0].size > 1 {
+                while self.flip_coin() && !is_head {
+                    self.add_level();
+                    let curr_size = self.levels.len();
+                    let new_node = self.levels[curr_size - 1].insert(key.clone(), value.clone());
+                    prev_level_node.borrow_mut().up = Some(Rc::downgrade(&new_node));
+                    new_node.borrow_mut().down = Some(Rc::clone(&prev_level_node));
+                    prev_level_node = Rc::clone(&new_node);
+                }
             }
             self.size += 1;
-            return;
         }
-        let mut counter = 1;
-        while self.flip_coin() {
-            if counter >= self.levels.len() {
-                self.add_level();
+    }
+
+    fn insert_at_position(
+        &mut self,
+        level: usize,
+        key: &K,
+        value: &V,
+        insertion: &Insertion<K, V>,
+    ) -> Rc<RefCell<Node<K, V>>> {
+        return match insertion {
+            Insertion::Before => {
+                let new_head = self.levels[level].insert(key.clone(), value.clone());
+                Rc::clone(&new_head)
             }
-            // ensure head is added only once since add_level also adds head
-            if self.levels[0].size > 1 {
-                let new_node = self.levels[counter].insert(key.clone(), value.clone());
-                prev.borrow_mut().up = Some(Rc::downgrade(&new_node));
-                new_node.borrow_mut().down = Some(Rc::clone(&prev));
-                prev = Rc::clone(&new_node);
-                counter += 1
+            Insertion::After(node) => {
+                let new_node =
+                    self.levels[level].insert_after(key.clone(), value.clone(), Rc::clone(node));
+                Rc::clone(&new_node)
             }
-        }
-        self.size += 1;
+        };
     }
 
     pub fn get(&mut self, key: &K) -> Option<V> {
@@ -328,22 +364,31 @@ where
     }
 
     /// Find the points of insertion in each level to complete an insert to the list.
-    fn bisect(&self, key: K, output: &mut Vec<Rc<RefCell<Node<K, V>>>>) {
+    fn bisect(&self, key: &K, output: &mut Vec<Insertion<K, V>>) {
         let size = self.levels.len();
-        if size == 0 {
-            return;
-        }
         let mut i = 0;
-        let mut prev = self.levels[0].head.as_ref().map(Rc::clone).unwrap();
         while i < size {
             let idx = size - i - 1;
-            let node = self.levels[idx].bisect_after(&prev, &key);
-            let current: Rc<RefCell<Node<K, V>>> = node.as_ref().map(Rc::clone).unwrap();
-            prev = current.borrow().down.as_ref().map(Rc::clone).unwrap();
-            output.push(node.unwrap());
-            i += 1
+            let head = self.levels[idx].head.as_ref();
+            if head.is_some() {
+                let head_ref = head.unwrap();
+                match head_ref.borrow().cmp(key) {
+                    Ordering::Greater => {
+                        // insert before head
+                        output.push(Insertion::Before);
+                    }
+                    Ordering::Equal | Ordering::Less => {
+                        let insertion_point = self.levels[idx].bisect_after(head_ref, key).unwrap();
+                        output.push(Insertion::After(insertion_point));
+                    }
+                }
+            } else {
+                // insert new head into empty level
+                output.push(Insertion::Before)
+            }
+            i += 1;
         }
-        output.reverse();
+        output.reverse()
     }
 
     fn iter(&self) -> Iter<K, V> {
@@ -624,12 +669,12 @@ mod tests {
     #[test]
     fn test_skiplist_insert() {
         let mut list = SkipList::new();
-        list.insert(7, 7);
-        list.insert(4, 4);
-        list.insert(1, 1);
         list.insert(2, 2);
         list.insert(3, 3);
+        list.insert(1, 1);
+        list.insert(4, 4);
         list.insert(5, 5);
+        list.insert(7, 7);
         list.insert(8, 8);
         list.insert(6, 6);
         assert_eq!(list.size, 8);
