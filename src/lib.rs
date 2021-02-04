@@ -1,3 +1,4 @@
+//! Subway is a fast, performant implementation of the skip list data structure written in rust.
 //! Skip List is an alternative to self balancing sorted data structures like AVL Trees and
 //! Red Black Trees.
 //!
