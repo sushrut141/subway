@@ -62,12 +62,12 @@ where
         }
     }
 
-    /// Return the node after which a node with the supplied key can be inserted.
-    /// For example in this list:
-    ///     h -> 1 -> 2 -> 2 -> 3
-    ///                    ^
-    ///                    |
-    ///    bisection point for key `3`
+    // Return the node after which a node with the supplied key can be inserted.
+    // For example in this list:
+    //     h -> 1 -> 2 -> 2 -> 3
+    //                    ^
+    //                    |
+    //    bisection point for key `3`
     fn bisect(&mut self, key: &K) -> Link<K, V> {
         let maybe_marker = self.iter().find(|node_ref| {
             return match node_ref.borrow().cmp(key) {
@@ -82,11 +82,11 @@ where
         self.iter().last()
     }
 
-    /// Find the insertion pint for the supplied after the given node.
-    /// For example in the below list the bisection point is 5
-    /// h -> 1 -> 2 -> 5 -> 7
-    ///      |         |
-    ///      node      insertion point for key 6
+    // Find the insertion pint for the supplied after the given node.
+    // For example in the below list the bisection point is 5
+    // h -> 1 -> 2 -> 5 -> 7
+    //      |         |
+    //      node      insertion point for key 6
     fn bisect_after(&self, node: &Rc<RefCell<Node<K, V>>>, target: &K) -> Link<K, V> {
         if node.borrow().key.cmp(target) == Ordering::Greater {
             return None;
@@ -174,9 +174,9 @@ where
         };
     }
 
-    /// Insert after the supplied node.
-    /// This method just inserts after the supplied node.
-    /// It is up to the caller to ensure that the sorted order is maintained.
+    // Insert after the supplied node.
+    // This method just inserts after the supplied node.
+    // It is up to the caller to ensure that the sorted order is maintained.
     fn insert_after(
         &mut self,
         key: K,
@@ -243,6 +243,15 @@ impl<K, V> Iterator for Iter<K, V> {
     }
 }
 
+/// Skip List is an alternative to self balancing sorted data structures like AVL Trees and
+/// Red Black Trees.
+///
+/// It supports fast insertion and lookup times with logarithmic complexity.
+///
+/// Skip List is a probabilistic data structure that uses multiple stacked Linked Lists
+/// to achieve fast read and writes.
+/// For more information about how skip lists work
+/// refer [here](https://en.wikipedia.org/wiki/Skip_list).
 pub struct SkipList<K, V> {
     size: usize,
     levels: Vec<Level<K, V>>,
@@ -259,11 +268,33 @@ where
     K: Ord + Clone + Display,
     V: Clone,
 {
+    /// Create a empty skip list. This is the recommended way of creating a skip list.
+    ///
+    /// # Example
+    /// ```rust
+    /// let list = SkipList::new();
+    /// ```
     pub fn new() -> SkipList<K, V> {
         let levels = vec![Level::new()];
         SkipList { size: 0, levels }
     }
 
+    /// Insert the given key and value into the list.
+    ///
+    /// # Arguments
+    /// * _key_ - The key by which the value is to be accessed.
+    ///             This is also used as the sort key.
+    /// * _value_ - The value to store associated with the key.
+    ///
+    /// # Example
+    /// ```rust
+    /// let mut cakes: SkipList<i32, String> = SkipList::new();
+    /// cakes.insert(20, "Strawberry Topping".to_owned());
+    /// cakes.insert(40, "Chocolate Glaze".to_owned());
+    ///
+    /// assert_eq!(cakes.size, 2);
+    /// ```
+    ///
     pub fn insert(&mut self, key: K, value: V) {
         if self.levels.len() > 0 {
             let mut insertion_path = Vec::new();
@@ -303,26 +334,20 @@ where
         }
     }
 
-    fn insert_at_position(
-        &mut self,
-        level: usize,
-        key: &K,
-        value: &V,
-        insertion: &Insertion<K, V>,
-    ) -> Rc<RefCell<Node<K, V>>> {
-        return match insertion {
-            Insertion::Before => {
-                let new_head = self.levels[level].insert(key.clone(), value.clone());
-                Rc::clone(&new_head)
-            }
-            Insertion::After(node) => {
-                let new_node =
-                    self.levels[level].insert_after(key.clone(), value.clone(), Rc::clone(node));
-                Rc::clone(&new_node)
-            }
-        };
-    }
-
+    /// Get the value associated with a key if it exists.
+    ///
+    /// # Arguments
+    /// * _key_ - The key whose value is to be read.
+    ///
+    /// # Example
+    /// ```rust
+    /// let mut cakes: SkipList<i32, String> = SkipList::new();
+    /// cakes.insert(20, "Strawberry Topping".to_owned());
+    /// cakes.insert(40, "Chocolate Glaze".to_owned());
+    /// let maybe_chocolate = cakes.get(&20);
+    /// assert_eq!(maybe_chocolate.is_some(), true);
+    /// assert_eq!(maybe_chocolate.unwrap(), "Chocolate Glaze");
+    /// ```
     pub fn get(&mut self, key: &K) -> Option<V> {
         let size = self.levels.len();
         let mut i = 0;
@@ -344,6 +369,19 @@ where
         None
     }
 
+    /// Delete the value associated with the key.
+    ///
+    /// # Arguments
+    /// * _key_ - The key associated with the value to delete.
+    ///
+    /// # Example
+    /// ```rust
+    /// let mut cakes: SkipList<i32, String> = SkipList::new();
+    /// cakes.insert(20, "Strawberry Topping".to_owned());
+    /// cakes.insert(40, "Chocolate Glaze".to_owned());
+    /// cakes.insert(100, "lemon cream".to_owned());
+    /// cakes.delete(&100);
+    /// ```
     pub fn delete(&mut self, key: &K) {
         let size = self.levels.len();
         for i in 0..size {
@@ -352,7 +390,20 @@ where
         self.size = self.levels[0].size;
     }
 
-    /// Collect the entries sorted by key into the supplied collection.
+    /// Collect the entries sorted by key into a collection.
+    ///
+    /// # Example
+    /// ```rust
+    /// let mut cakes: SkipList<i32, String> = SkipList::new();
+    /// cakes.insert(20, "Strawberry Topping".to_owned());
+    /// cakes.insert(40, "Chocolate Glaze".to_owned());
+    /// cakes.insert(100, "Lemon Cream".to_owned());
+    ///
+    /// // add to cart
+    /// let cart = cakes.collect();
+    /// assert_eq!(cart.len(), 3);
+    /// assert_eq!(cart, vec![(20, "Strawberry Topping"), (40, "Chocolate Glaze"), (100, "Lemon Cream")])
+    /// ```
     pub fn collect(&self) -> Vec<(K, V)> {
         let mut values = Vec::new();
         self.iter().for_each(|node_ref| {
@@ -361,6 +412,26 @@ where
             values.push((key, value));
         });
         values
+    }
+
+    fn insert_at_position(
+        &mut self,
+        level: usize,
+        key: &K,
+        value: &V,
+        insertion: &Insertion<K, V>,
+    ) -> Rc<RefCell<Node<K, V>>> {
+        return match insertion {
+            Insertion::Before => {
+                let new_head = self.levels[level].insert(key.clone(), value.clone());
+                Rc::clone(&new_head)
+            }
+            Insertion::After(node) => {
+                let new_node =
+                    self.levels[level].insert_after(key.clone(), value.clone(), Rc::clone(node));
+                Rc::clone(&new_node)
+            }
+        };
     }
 
     /// Find the points of insertion in each level to complete an insert to the list.
