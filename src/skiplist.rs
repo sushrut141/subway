@@ -272,7 +272,9 @@ where
     ///
     /// # Example
     /// ```rust
-    /// let list = SkipList::new();
+    /// use skiplist::skiplist::SkipList;
+    ///
+    /// let list: SkipList<i32, i32> = SkipList::new();
     /// ```
     pub fn new() -> SkipList<K, V> {
         let levels = vec![Level::new()];
@@ -288,11 +290,13 @@ where
     ///
     /// # Example
     /// ```rust
+    /// use skiplist::skiplist::SkipList;
+    ///
     /// let mut cakes: SkipList<i32, String> = SkipList::new();
     /// cakes.insert(20, "Strawberry Topping".to_owned());
     /// cakes.insert(40, "Chocolate Glaze".to_owned());
     ///
-    /// assert_eq!(cakes.size, 2);
+    /// assert_eq!(cakes.len(), 2);
     /// ```
     ///
     pub fn insert(&mut self, key: K, value: V) {
@@ -341,12 +345,14 @@ where
     ///
     /// # Example
     /// ```rust
+    /// use skiplist::skiplist::SkipList;
+    ///
     /// let mut cakes: SkipList<i32, String> = SkipList::new();
     /// cakes.insert(20, "Strawberry Topping".to_owned());
     /// cakes.insert(40, "Chocolate Glaze".to_owned());
     /// let maybe_chocolate = cakes.get(&20);
     /// assert_eq!(maybe_chocolate.is_some(), true);
-    /// assert_eq!(maybe_chocolate.unwrap(), "Chocolate Glaze");
+    /// assert_eq!(maybe_chocolate.unwrap(), "Strawberry Topping");
     /// ```
     pub fn get(&mut self, key: &K) -> Option<V> {
         let size = self.levels.len();
@@ -376,6 +382,8 @@ where
     ///
     /// # Example
     /// ```rust
+    /// use skiplist::skiplist::SkipList;
+    ///
     /// let mut cakes: SkipList<i32, String> = SkipList::new();
     /// cakes.insert(20, "Strawberry Topping".to_owned());
     /// cakes.insert(40, "Chocolate Glaze".to_owned());
@@ -394,6 +402,8 @@ where
     ///
     /// # Example
     /// ```rust
+    /// use skiplist::skiplist::SkipList;
+    ///
     /// let mut cakes: SkipList<i32, String> = SkipList::new();
     /// cakes.insert(20, "Strawberry Topping".to_owned());
     /// cakes.insert(40, "Chocolate Glaze".to_owned());
@@ -402,7 +412,7 @@ where
     /// // add to cart
     /// let cart = cakes.collect();
     /// assert_eq!(cart.len(), 3);
-    /// assert_eq!(cart, vec![(20, "Strawberry Topping"), (40, "Chocolate Glaze"), (100, "Lemon Cream")])
+    /// assert_eq!(cart, vec![(20, "Strawberry Topping".to_owned()), (40, "Chocolate Glaze".to_owned()), (100, "Lemon Cream".to_owned())])
     /// ```
     pub fn collect(&self) -> Vec<(K, V)> {
         let mut values = Vec::new();
@@ -412,6 +422,35 @@ where
             values.push((key, value));
         });
         values
+    }
+
+    /// Returns the size of the list.
+    ///
+    /// # Example
+    /// ```rust
+    /// use skiplist::skiplist::SkipList;
+    ///
+    /// let mut cakes: SkipList<i32, String> = SkipList::new();
+    /// cakes.insert(20, "Strawberry Topping".to_owned());
+    /// cakes.insert(40, "Chocolate Glaze".to_owned());
+    /// cakes.insert(100, "Lemon Cream".to_owned());
+    /// assert_eq!(cakes.len(), 3);
+    /// ```
+    pub fn len(&self) -> usize {
+        self.size
+    }
+
+    /// Returns whether list is empty.
+    ///
+    /// # Example
+    /// ```rust
+    /// use skiplist::skiplist::SkipList;
+    ///
+    /// let empty_list: SkipList<i32, i32> = SkipList::new();
+    /// assert_eq!(empty_list.is_empty(), true);
+    /// ```
+    pub fn is_empty(&self) -> bool {
+        self.size == 0
     }
 
     fn insert_at_position(
@@ -486,7 +525,6 @@ where
         return random > 0.50;
     }
 
-    #[cfg(debug_assertions)]
     fn print(&self) {
         let size = self.levels.len();
         println!("number of levels is {0}", self.levels.len());
@@ -762,7 +800,7 @@ mod tests {
         list.insert(5, 5);
         list.insert(8, 8);
         list.insert(6, 6);
-        let mut values: Vec<i32> = list.collect().iter().map(|tup| tup.1).collect();
+        let values: Vec<i32> = list.collect().iter().map(|tup| tup.1).collect();
         assert_eq!(values, vec![1, 2, 3, 4, 5, 6, 7, 8]);
     }
 
@@ -800,7 +838,7 @@ mod tests {
         list.delete(&1);
         list.delete(&4);
         assert_eq!(list.size, 6);
-        let mut values: Vec<i32> = list.collect().iter().map(|tup| tup.1).collect();
+        let values: Vec<i32> = list.collect().iter().map(|tup| tup.1).collect();
         assert_eq!(values, vec![2, 3, 5, 6, 7, 8]);
     }
 }
