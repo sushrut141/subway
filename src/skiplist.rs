@@ -272,7 +272,7 @@ where
     ///
     /// # Example
     /// ```rust
-    /// use skiplist::skiplist::SkipList;
+    /// use subway::skiplist::SkipList;
     ///
     /// let list: SkipList<i32, i32> = SkipList::new();
     /// ```
@@ -290,7 +290,7 @@ where
     ///
     /// # Example
     /// ```rust
-    /// use skiplist::skiplist::SkipList;
+    /// use subway::skiplist::SkipList;
     ///
     /// let mut cakes: SkipList<i32, String> = SkipList::new();
     /// cakes.insert(20, "Strawberry Topping".to_owned());
@@ -345,7 +345,7 @@ where
     ///
     /// # Example
     /// ```rust
-    /// use skiplist::skiplist::SkipList;
+    /// use subway::skiplist::SkipList;
     ///
     /// let mut cakes: SkipList<i32, String> = SkipList::new();
     /// cakes.insert(20, "Strawberry Topping".to_owned());
@@ -382,7 +382,7 @@ where
     ///
     /// # Example
     /// ```rust
-    /// use skiplist::skiplist::SkipList;
+    /// use subway::skiplist::SkipList;
     ///
     /// let mut cakes: SkipList<i32, String> = SkipList::new();
     /// cakes.insert(20, "Strawberry Topping".to_owned());
@@ -402,7 +402,7 @@ where
     ///
     /// # Example
     /// ```rust
-    /// use skiplist::skiplist::SkipList;
+    /// use subway::skiplist::SkipList;
     ///
     /// let mut cakes: SkipList<i32, String> = SkipList::new();
     /// cakes.insert(20, "Strawberry Topping".to_owned());
@@ -428,7 +428,7 @@ where
     ///
     /// # Example
     /// ```rust
-    /// use skiplist::skiplist::SkipList;
+    /// use subway::skiplist::SkipList;
     ///
     /// let mut cakes: SkipList<i32, String> = SkipList::new();
     /// cakes.insert(20, "Strawberry Topping".to_owned());
@@ -444,7 +444,7 @@ where
     ///
     /// # Example
     /// ```rust
-    /// use skiplist::skiplist::SkipList;
+    /// use subway::skiplist::SkipList;
     ///
     /// let empty_list: SkipList<i32, i32> = SkipList::new();
     /// assert_eq!(empty_list.is_empty(), true);
