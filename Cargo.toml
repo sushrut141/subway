@@ -1,5 +1,5 @@
 [package]
-name = "skiplist"
+name = "subway"
 version = "0.1.0"
 authors = ["sushrutshivaswamy"]
 edition = "2018"
