@@ -28,11 +28,11 @@ mod tests {
         list.insert(2, 2);
         assert_eq!(list.len(), 3);
         let key = 1;
-        assert_eq!(list.get(&key).is_some(), true);
+        assert!(list.get(&key).is_some());
         assert_eq!(list.get(&key).unwrap(), 1);
         assert_eq!(list.collect(), vec![(1, 1), (2, 2), (3, 3)]);
         list.delete(&key);
-        assert_eq!(list.get(&key).is_none(), true);
+        assert!(list.get(&key).is_none());
         assert_eq!(list.len(), 2);
         assert_eq!(list.collect(), vec![(2, 2), (3, 3)]);
     }
