@@ -583,9 +583,9 @@ mod tests {
         let new_node = level.insert_after(2, 2, Rc::clone(&after));
         let prev_node = new_node.borrow().left.as_ref().and_then(Weak::upgrade);
         let next_node = new_node.borrow().right.as_ref().map(Rc::clone);
-        assert_eq!(prev_node.is_some(), true);
+        assert!(prev_node.is_some());
         assert_eq!(prev_node.as_ref().unwrap().borrow().key, 1);
-        assert_eq!(next_node.is_some(), true);
+        assert!(next_node.is_some());
         assert_eq!(next_node.as_ref().unwrap().borrow().key, 3);
     }
 
@@ -598,9 +598,9 @@ mod tests {
         let new_node = level.insert_after(6, 6, Rc::clone(&tail));
         let prev_node = new_node.borrow().left.as_ref().and_then(Weak::upgrade);
         let next_node = new_node.borrow().right.as_ref().map(Rc::clone);
-        assert_eq!(prev_node.is_some(), true);
+        assert!(prev_node.is_some());
         assert_eq!(prev_node.as_ref().unwrap().borrow().key, 5);
-        assert_eq!(next_node.is_none(), true);
+        assert!(next_node.is_none());
     }
 
     #[test]
@@ -611,10 +611,10 @@ mod tests {
         level.insert(4, 4);
         let node = level.insert(3, 3);
         let maybe_found = level.bisect_after(&node, &4);
-        assert_eq!(maybe_found.is_some(), true);
+        assert!(maybe_found.is_some());
         assert_eq!(maybe_found.unwrap().borrow().key, 4);
         let maybe_last = level.bisect_after(&node, &7);
-        assert_eq!(maybe_last.is_some(), true);
+        assert!(maybe_last.is_some());
         assert_eq!(maybe_last.unwrap().borrow().key, 5);
     }
 
@@ -626,7 +626,7 @@ mod tests {
         level.insert(3, 3);
         let node = level.insert(1, 1);
         let maybe_found = level.bisect_after(&node, &0);
-        assert_eq!(maybe_found.is_none(), true);
+        assert!(maybe_found.is_none());
     }
 
     #[test]
@@ -637,8 +637,8 @@ mod tests {
         level.insert(3, 3);
         let node = level.insert(1, 1);
         let maybe_found = level.bisect_after(&node, &5);
-        assert_eq!(maybe_found.is_some(), true);
-        assert_eq!(maybe_found.as_ref().unwrap().borrow().right.is_none(), true);
+        assert!(maybe_found.is_some());
+        assert!(maybe_found.as_ref().unwrap().borrow().right.is_none());
     }
 
     #[test]
@@ -674,7 +674,7 @@ mod tests {
         level.insert(4, 4);
         // test value exists in middle
         let maybe_marker = level.bisect(&2);
-        assert_eq!(maybe_marker.is_some(), true);
+        assert!(maybe_marker.is_some());
         assert_eq!(maybe_marker.as_ref().unwrap().borrow().key, 2);
         let maybe_next_node: Option<Rc<RefCell<Node<i32, i32>>>> = maybe_marker
             .as_ref()
@@ -686,7 +686,7 @@ mod tests {
         assert_eq!(maybe_next_node.unwrap().borrow().key, 3);
         // test value exists at end
         let maybe_marker = level.bisect(&4);
-        assert_eq!(maybe_marker.is_some(), true);
+        assert!(maybe_marker.is_some());
         assert_eq!(maybe_marker.as_ref().unwrap().borrow().key, 4);
     }
 
@@ -701,11 +701,11 @@ mod tests {
         level.insert(5, 5);
         // test value doesn't exist
         let maybe_marker = level.bisect(&4);
-        assert_eq!(maybe_marker.is_some(), true);
+        assert!(maybe_marker.is_some());
         assert_eq!(maybe_marker.as_ref().unwrap().borrow().key, 3);
         let maybe_end = level.bisect(&5);
-        assert_eq!(maybe_end.is_some(), true);
-        assert_eq!(maybe_end.as_ref().unwrap().borrow().right.is_none(), true);
+        assert!(maybe_end.is_some());
+        assert!(maybe_end.as_ref().unwrap().borrow().right.is_none());
     }
 
     #[test]
@@ -717,9 +717,9 @@ mod tests {
         level.insert(2, 2);
         level.insert(2, 2);
         let last_node = level.insert(5, 5);
-        assert_eq!(last_node.borrow().right.is_none(), true);
+        assert!(last_node.borrow().right.is_none());
         let maybe_found = level.bisect_after(&last_node, &5);
-        assert_eq!(maybe_found.is_some(), true);
+        assert!(maybe_found.is_some());
         assert_eq!(
             maybe_found.as_ref().unwrap().borrow().key,
             last_node.borrow().key
@@ -735,7 +735,7 @@ mod tests {
         level.insert(2, 2);
         let node = level.insert(2, 2);
         let maybe_insert = level.bisect_after(&node, &5);
-        assert_eq!(maybe_insert.is_some(), true);
+        assert!(maybe_insert.is_some());
         assert_eq!(maybe_insert.as_ref().unwrap().borrow().key, 3);
     }
 
@@ -816,10 +816,10 @@ mod tests {
         list.insert(8, 8);
         list.insert(6, 6);
         let maybe_1 = list.get(&1);
-        assert_eq!(maybe_1.is_some(), true);
+        assert!(maybe_1.is_some());
         assert_eq!(maybe_1.unwrap(), 1);
         let maybe_3 = list.get(&3);
-        assert_eq!(maybe_3.is_some(), true);
+        assert!(maybe_3.is_some());
         assert_eq!(maybe_3.unwrap(), 3);
     }
 
