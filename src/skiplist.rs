@@ -82,7 +82,7 @@ where
         self.iter().last()
     }
 
-    // Find the insertion pint for the supplied after the given node.
+    // Find the insertion point for the supplied key after the given node.
     // For example in the below list the bisection point is 5
     // h -> 1 -> 2 -> 5 -> 7
     //      |         |
@@ -302,7 +302,7 @@ where
     pub fn insert(&mut self, key: K, value: V) {
         if self.levels.len() > 0 {
             let mut insertion_path = Vec::new();
-            self.bisect(&key, &mut insertion_path);
+            self.bisect_levels(&key, &mut insertion_path);
             let mut is_head = false;
             match insertion_path.get(0).unwrap() {
                 Insertion::Before => {
@@ -398,6 +398,52 @@ where
         self.size = self.levels[0].size;
     }
 
+    /// Find the largest key after which the supplied key can be inserted.
+    ///
+    /// # Arguments
+    /// * _key_ - The key whose insertion point is to be found.
+    ///
+    /// # Returns
+    /// `Option` of key after which the given key can be inserted.
+    /// `None` implies no key less that supplied key exists.
+    ///
+    /// # Example
+    /// ```rust
+    /// use subway::skiplist::SkipList;
+    ///
+    /// let mut list = SkipList::new();
+    /// list.insert(1, "small");
+    /// list.insert(4, "x-large");
+    /// list.insert(3, "large");
+    /// // 1 -> 3 -> 4
+    /// // |
+    /// // 2 insertion point
+    /// let maybe_medium_insertion = list.bisect(&2);
+    /// assert!(maybe_medium_insertion.is_some());
+    /// assert_eq!(maybe_medium_insertion.unwrap(), 1);
+    /// ```
+    pub fn bisect(&mut self, key: &K) -> Option<K> {
+        let size = self.levels.len();
+        if size > 0 {
+            let mut i = 0;
+            let mut maybe_prev = self.levels[size - i - 1].bisect(key);
+            let mut prev_node: Option<Rc<RefCell<Node<K, V>>>> = None;
+            while i < size && maybe_prev.is_some() {
+                prev_node = maybe_prev.as_ref().map(Rc::clone);
+                let prev = maybe_prev.take().unwrap();
+                let maybe_after = prev.borrow().down.as_ref().map(Rc::clone);
+                if maybe_after.is_none() {
+                    return Some(prev.borrow().key.clone());
+                }
+                let after = maybe_after.unwrap();
+                i += 1;
+                maybe_prev = self.levels[size - i - 1].bisect_after(&after, key);
+            }
+            return prev_node.map(|node_rc| node_rc.borrow().key.clone());
+        }
+        None
+    }
+
     /// Collect the entries sorted by key into a collection.
     ///
     /// # Example
@@ -474,7 +520,7 @@ where
     }
 
     /// Find the points of insertion in each level to complete an insert to the list.
-    fn bisect(&self, key: &K, output: &mut Vec<Insertion<K, V>>) {
+    fn bisect_levels(&self, key: &K, output: &mut Vec<Insertion<K, V>>) {
         let size = self.levels.len();
         let mut i = 0;
         while i < size {
