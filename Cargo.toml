@@ -1,6 +1,6 @@
 [package]
 name = "subway"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["sushrutshivaswamy"]
 repository = "https://github.com/sushrut141/subway"
 edition = "2018"
