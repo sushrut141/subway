@@ -2,6 +2,7 @@
 name = "subway"
 version = "0.1.1"
 authors = ["sushrutshivaswamy"]
+repository = "https://github.com/sushrut141/subway"
 edition = "2018"
 description = """
 Fast, performant in-memory SkipList implemented in Rust.
